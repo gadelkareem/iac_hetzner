@@ -1,0 +1,48 @@
+{
+  "builders": [
+    {
+      "type": "hcloud",
+      "snapshot_name": "app_{{user `release`}}",
+      "snapshot_labels": {
+        "name": "app_{{user `release`}}",
+        "app": "app",
+        "release": "{{user `release`}}",
+        "env": "{{user `env`}}"
+      },
+      "token": "{{user `hcloud_token`}}",
+      "image": "{{user `base_img_id`}}",
+      "location": "{{user `location`}}",
+      "server_type": "cx11",
+      "ssh_username": "{{user `ssh_user`}}",
+      "ssh_port": "{{user `ssh_port`}}",
+      "ssh_agent_auth": true
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "file",
+      "source": "scripts/common/functions.sh",
+      "destination": "/tmp/functions.sh"
+    },
+    {
+      "type": "shell",
+      "script": "scripts/service.sh",
+      "execute_command": "echo 'packer' | sudo -S sh -c '{{ .Vars }} {{ .Path }} app {{user `base_path`}} '"
+    },
+    {
+      "type": "shell",
+      "script": "scripts/s3cmd.sh",
+      "execute_command": "echo 'packer' | sudo -S sh -c '{{ .Vars }} {{ .Path }} {{user `s3_access_key`}} {{user `s3_secret_key`}} {{user `s3_sub_domain`}}{{user `release`}}.{{user `s3_domain`}}:{{user `s3_port`}} {{user `s3_location`}}'"
+    },
+    {
+      "type": "shell",
+      "script": "scripts/services/app.sh",
+      "execute_command": "echo 'packer' | sudo -S sh -c '{{ .Vars }} {{ .Path }} /tmp'"
+    }
+  ],
+  "variables": {
+    "base_img_id": "{{env `BASE_IMG_ID`}}"
+  }
+}
+
+

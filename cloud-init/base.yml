@@ -1,0 +1,124 @@
+#cloud-config
+
+package_upgrade: true
+package_update: true
+timezone: Europe/Amsterdam
+packages:
+- htop
+- curl
+- wget
+- vim
+- screen
+- apt-transport-https
+- software-properties-common
+- ca-certificates
+- jq
+
+ssh_pwauth: false
+disable_root: true
+chpasswd:
+  expire: false
+
+users:
+- name: exampleuser
+  sudo: ALL=(ALL) NOPASSWD:ALL
+  groups: sudo
+  ssh_authorized_keys:
+  - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDQy4jChHH/5p7CwO4lr5b6aa33ey3RiUZ6i6aV2bMb88rGl9V3Qu3d3PINlPCfhQ3rje53/k2RT/kf7Jo8BbAqQVmhWmnqwuUclIlRfBWKkg93cChf4NheC3JTr9ycebpKUPGWgka89aL+BRraOHXNh5kQ4EGuYZGLhQI8EJbYNvlQXZYp41gTxli4+/amIbdThY3CX7KhhrHUKcIlxQPOyPIEpfCg+DPGVR86U6U7QU2xNKbf84QD5GVjtUw3KHeygEEJ8lHBIHN3pcVlJIln6Ac7PR9ltLuu681SU5FwvKURKrotAS8D1WlYkREVueeSJ0xcVgN7WWcG/JU+WKmDcb6FWhbsFBSxxQ4s3VX9pCCRq47FyyFs0dVekJXxk0dtDH73D7dNsawykdFFR15aMjvP0OBF8NkQl7UkbxPXnGCPBu/Y51uBZYyn29k124edY4YZu2bU7JqG8ve0K4THtp3RotXxT/cZ9SFPZ94b5yDEkkj0hNK4yhPtUYdnEYLYpw+BXsr7t4qFfiGRZykmnRW/Q/puTzWQ3XCtq15zbtrShYSO/IYkSV8zs+KuGKN7aKxcxpdpVuP1Twq3rlhD34kVtKOlax9iCXkzsFPL+SbQA6Bt9ZjWu2tEwdQUYnzasGa6fFloMX9id/nLEqjo2z2GuL/u1V+w+29DRj3IfQ== you@example.com
+  shell: /bin/bash
+
+manage_resolv_conf: true
+resolv_conf:
+  nameservers: ['1.1.1.1', '1.0.0.1', '8.8.4.4', '8.8.8.8', '2606:4700:4700::1111', '2606:4700:4700::1001']
+  options:
+    rotate: true
+    timeout: 1
+
+write_files:
+- path: /etc/security/limits.conf
+  content: |
+    *       -       nproc   1048576
+    *       -       core    1048576
+    *       -       memlock 1048576
+    *       -       nofile  1048576
+    *       -       stack   1048576
+- path: /etc/default/locale
+  content: |
+    LC_ALL=en_US.UTF-8
+    LANG=en_US.UTF-8
+    LC_MESSAGES=POSIX
+    LANGUAGE=en_US.UTF-8
+- path: /etc/ssh/sshd_config
+  content: |
+    Port 22
+    Protocol 2
+    HostKey /etc/ssh/ssh_host_rsa_key
+    HostKey /etc/ssh/ssh_host_dsa_key
+    HostKey /etc/ssh/ssh_host_ecdsa_key
+    HostKey /etc/ssh/ssh_host_ed25519_key
+    UsePrivilegeSeparation yes
+    KeyRegenerationInterval 3600
+    ServerKeyBits 1024
+    SyslogFacility AUTH
+    LogLevel INFO
+    LoginGraceTime 120
+    PermitRootLogin no
+    StrictModes yes
+    RSAAuthentication yes
+    PubkeyAuthentication yes
+    IgnoreRhosts yes
+    RhostsRSAAuthentication no
+    HostbasedAuthentication no
+    PermitEmptyPasswords no
+    ChallengeResponseAuthentication no
+    X11Forwarding yes
+    X11DisplayOffset 10
+    PrintMotd no
+    PrintLastLog yes
+    TCPKeepAlive yes
+    AcceptEnv LANG LC_*
+    Subsystem sftp /usr/lib/openssh/sftp-server
+    PasswordAuthentication no
+    UsePAM yes
+    AllowUsers exampleuser
+
+runcmd:
+#
+# Setup
+#
+- sudo su
+- export DEBIAN_FRONTEND=noninteractive
+- systemctl restart sshd.service
+- apt-get remove apache2  -y
+- updatedb
+#
+# ulimit
+#
+- echo "fs.file-max=1048576" >> /etc/sysctl.conf
+- echo "fs.nr_open=1048576" >> /etc/sysctl.conf
+- echo "net.ipv4.ip_forward=1" >> /etc/sysctl.conf
+- echo "net.ipv4.tcp_tw_recycle=1" >> /etc/sysctl.conf
+- echo "net.ipv4.tcp_tw_reuse=1" >> /etc/sysctl.conf
+- echo "net.ipv6.conf.all.forwarding=1" >> /etc/sysctl.conf
+- echo "DefaultLimitNOFILE=1048576" >> /etc/systemd/user.conf
+- echo "DefaultLimitNOFILE=1048576" >> /etc/systemd/system.conf
+#
+# Firewall
+#
+# defaults
+- ufw default deny incoming
+- ufw default allow outgoing
+- ufw allow 22 comment "SSH"
+- ufw --force enable
+
+#swap
+- fallocate -l 2G /mnt/2GB.swap
+- dd if=/dev/zero of=/mnt/2GB.swap bs=1024 count=2097152
+- mkswap /mnt/2GB.swap && chmod 0600 /mnt/2GB.swap
+- swapon /mnt/2GB.swap
+- grep -q "2GB.swap" /etc/fstab || echo '/mnt/2GB.swap none swap defaults 0 0' | tee -a /etc/fstab
+
+#power_state:
+#  mode: reboot
+#  message: Bye Bye
+#  condition: stat /var/run/reboot-required

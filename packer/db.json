@@ -1,0 +1,48 @@
+{
+  "builders": [
+    {
+      "type": "hcloud",
+      "snapshot_name": "db_{{user `release`}}",
+      "snapshot_labels": {
+        "name": "db_{{user `release`}}",
+        "app": "db",
+        "release": "{{user `release`}}",
+        "env": "{{user `env`}}"
+      },
+      "token": "{{user `hcloud_token`}}",
+      "image": "{{user `base_img_id`}}",
+      "location": "{{user `location`}}",
+      "server_type": "cx11",
+      "ssh_username": "{{user `ssh_user`}}",
+      "ssh_port": "{{user `ssh_port`}}",
+      "ssh_agent_auth": true
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "file",
+      "source": "scripts/common/functions.sh",
+      "destination": "/tmp/functions.sh"
+    },
+    {
+      "type": "file",
+      "source": "scripts/postgresql",
+      "destination": "/tmp"
+    },
+    {
+      "type": "shell",
+      "inline": [
+        "sudo bash /tmp/postgresql/postgresql.sh /tmp"
+      ]
+    },
+    {
+      "type": "shell",
+      "script": "scripts/s3cmd.sh",
+      "execute_command": "echo 'packer' | sudo -S sh -c '{{ .Vars }} {{ .Path }} {{user `s3_access_key`}} {{user `s3_secret_key`}} {{user `s3_sub_domain`}}{{user `release`}}.{{user `s3_domain`}}:{{user `s3_port`}} {{user `s3_location`}}'"
+    }
+  ],
+  "variables": {
+    "base_img_id": "{{env `BASE_IMG_ID`}}"
+  }
+}
+

@@ -1,0 +1,36 @@
+{
+  "builders": [
+    {
+      "type": "hcloud",
+      "snapshot_name": "base_{{user `release`}}",
+      "snapshot_labels": {
+        "name": "base_{{user `release`}}",
+        "release": "{{user `release`}}",
+        "env": "{{user `env`}}"
+      },
+      "user_data_file": "cloud-init/base.yml",
+      "token": "{{user `hcloud_token`}}",
+      "image": "{{user `os`}}",
+      "location": "{{user `location`}}",
+      "server_type": "cx11",
+      "ssh_username": "{{user `ssh_user`}}",
+      "ssh_port": "{{user `ssh_port`}}",
+      "ssh_agent_auth": true
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "shell",
+      "execute_command": "echo 'packer' | sudo -S sh -c '{{ .Vars }} {{ .Path }}'",
+      "inline": [
+        "echo 'Waiting for cloud-init...'",
+        "while [ ! -f /var/lib/cloud/instance/boot-finished ]; do printf .; sleep 1; done"
+      ],
+      "expect_disconnect": true,
+      "start_retry_timeout": "5s",
+      "pause_before": "1s"
+    }
+  ]
+}
+
+

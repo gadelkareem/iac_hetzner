@@ -1,0 +1,68 @@
+{
+  "builders": [
+    {
+      "type": "hcloud",
+      "snapshot_name": "s3_{{user `release`}}",
+      "snapshot_labels": {
+        "name": "s3_{{user `release`}}",
+        "app": "s3",
+        "release": "{{user `release`}}",
+        "env": "{{user `env`}}"
+      },
+      "token": "{{user `hcloud_token`}}",
+      "image": "{{user `base_img_id`}}",
+      "location": "{{user `location`}}",
+      "server_type": "cx11",
+      "ssh_username": "{{user `ssh_user`}}",
+      "ssh_port": "{{user `ssh_port`}}",
+      "ssh_agent_auth": true
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "file",
+      "source": "scripts/common/functions.sh",
+      "destination": "/tmp/functions.sh"
+    },
+    {
+      "type": "shell",
+      "script": "scripts/update-dns.sh",
+      "execute_command": "echo 'packer' | sudo -S sh -c '{{ .Vars }} {{ .Path }} {{user `s3_domain`}} {{user `s3_sub_domain`}}{{user `release`}} {{user `cloudflare_email`}} {{user `cloudflare_token`}}'"
+    },
+    {
+      "type": "shell",
+      "script": "scripts/s3cmd.sh",
+      "execute_command": "echo 'packer' | sudo -S sh -c '{{ .Vars }} {{ .Path }} {{user `s3_access_key`}} {{user `s3_secret_key`}} {{user `s3_sub_domain`}}{{user `release`}}.{{user `s3_domain`}}:{{user `s3_port`}} {{user `s3_location`}}'"
+    },
+    {
+      "type": "shell",
+      "script": "scripts/certbot.sh",
+      "execute_command": "echo 'packer' | sudo -S sh -c '{{ .Vars }} {{ .Path }}'"
+    },
+    {
+      "type": "shell",
+      "script": "scripts/letsencrypt.sh",
+      "execute_command": "echo 'packer' | sudo -S sh -c '{{ .Vars }} {{ .Path }} {{user `s3_domain`}} {{user `s3_sub_domain`}}{{user `release`}} '"
+    },
+    {
+      "type": "shell",
+      "script": "scripts/minio.sh",
+      "execute_command": "echo 'packer' | sudo -S sh -c '{{ .Vars }} {{ .Path }} {{user `s3_access_key`}} {{user `s3_secret_key`}} {{user `s3_sub_domain`}}{{user `release`}}.{{user `s3_domain`}}'"
+    },
+    {
+      "type": "shell",
+      "script": "scripts/service.sh",
+      "execute_command": "echo 'packer' | sudo -S sh -c '{{ .Vars }} {{ .Path }} minio /home/minio \"server --address ':{{user `s3_port`}}' --config-dir /home/minio /mnt/volume-s3-1/minio \"'"
+    },
+    {
+      "type": "shell",
+      "script": "scripts/services/s3.sh",
+      "execute_command": "echo 'packer' | sudo -S sh -c '{{ .Vars }} {{ .Path }} /tmp {{user `s3_sub_domain`}}{{user `release`}}.{{user `s3_domain`}} '"
+    }
+  ],
+  "variables": {
+    "base_img_id": "{{env `BASE_IMG_ID`}}"
+  }
+}
+
+

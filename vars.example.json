@@ -1,0 +1,20 @@
+{
+  "release": "1",
+  "hcloud_token": "add hetzner api 64 char token here",
+  "ssh_key": "add ssh public key here",
+  "datacenter": "fsn1-cd5",
+  "location": "fsn1",
+  "os": "ubuntu-18.04",
+  "ssh_user": "exampleuser",
+  "ssh_port": "22",
+  "env": "prod",
+  "s3_access_key": "add minio 20 char access key here",
+  "s3_secret_key": "add minio 40 char secret key here",
+  "s3_location": "us-east-1",
+  "s3_port": "9000",
+  "cloudflare_email": "cloudflare email",
+  "cloudflare_token": "add cloudflare 37 char global token here",
+  "base_path": "/var/www/application",
+  "s3_domain": "example.com",
+  "s3_sub_domain": "s3-"
+}

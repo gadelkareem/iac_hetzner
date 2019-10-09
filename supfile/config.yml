@@ -1,0 +1,42 @@
+
+# https://gits3.com/pressly/sup/blob/master/example/Supfile
+
+version: 0.4
+
+env:
+  # Environment variables for all commands
+  SERVER_IPS: $(hcloud server list  --output noheader --output columns=IPV4)
+
+networks:
+  # Groups of hosts
+  local:
+    hosts:
+    - localhost
+
+  hetzner:
+    inventory: for i in $(hcloud server list  --output noheader --output columns=IPV4); do echo "exampleuser@$i:22"; done
+
+commands:
+  ping:
+    desc: Print uname and current date/time.
+    run: uname -a; date
+
+  ufw:
+    run: >
+     for i in $SERVER_IPS; do sudo ufw allow from $i comment "node IP"; done;
+
+  mytest:
+    run: echo $SERVER_IPS
+
+  ufwstatus:
+    run: sudo ufw status
+
+  bash:
+    desc: Interactive Bash on all hosts
+    stdin: true
+    run: bash
+
+
+
+
+
