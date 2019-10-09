@@ -1,9 +1,9 @@
-data "hcloud_image" "db" {
+data "hcloud_image" "s3" {
   selector = "name=s3_${var.release}"
 }
 resource "hcloud_server" "s3" {
   name = "s3-${var.release}"
-  image = "${data.hcloud_image.db.id}"
+  image = "${data.hcloud_image.s3.id}"
   server_type = "cx11"
   datacenter = "${var.datacenter}"
   count = 1
